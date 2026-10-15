@@ -136,30 +136,16 @@ curl -s -X POST $API/sessions/$SID/end/    -H "Authorization: Bearer $U"
 curl -s $API/wallet/ -H "Authorization: Bearer $U"
 ```
 
-## Test console (React UI)
+### Testing billing manually without waiting
 
-[frontend/](frontend/) is a small Vite + React + TypeScript app for exercising the backend by hand. It has three columns:
-
-- **User console:** wallet, recharges and sessions.
-- **Provider console:** rate and sessions.
-- **Request log:** every API call with its status code and response body.
-
-The two consoles log in separately, so you can drive both sides of a session from one screen.
+When `DEBUG=True`, an extra endpoint moves an in-progress session's start time back, so you don't have to wait real minutes before calling `bill`:
 
 ```bash
-python manage.py runserver        # backend on :8000 (DEBUG=True)
-cd frontend
-npm install
-npm run dev                       # http://localhost:5173
+curl -s -X POST $API/dev/sessions/$SID/rewind/ -H "Authorization: Bearer $U" -H 'Content-Type: application/json' -d '{"minutes":5}'
+curl -s -X POST $API/sessions/$SID/bill/ -H "Authorization: Bearer $U"
 ```
 
-The Vite dev server proxies `/api` to `localhost:8000`, so no CORS setup is needed.
-
-**Highlighted buttons:** valid session actions are highlighted. Invalid ones stay clickable, so you can watch the backend return `400 invalid_transition`.
-
-**Dev clock:** on an in-progress session, **+1 min / +5 min** moves the session's start time back so billing can be tested without waiting. This uses `POST /api/dev/sessions/{id}/rewind/`, which is only routed when `DEBUG=True`.
-
-**Auto-bill:** this option calls the bill endpoint on an interval.
+It is not routed when `DEBUG=False`.
 
 ## Project layout
 
@@ -170,6 +156,5 @@ wallet/          Wallet, ledger, recharge models; services.py (credit/debit/call
 consultations/   Session model, state_machine.py, services.py (transitions), billing.py,
                  management command bill_active_sessions
 tests/           required scenarios + concurrency tests
-frontend/        React test console (dev tool, not part of the API)
 docs/DESIGN.md   diagrams and implementation decisions
 ```
